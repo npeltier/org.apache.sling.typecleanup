@@ -1,4 +1,5 @@
-org.apache.sling.typecleanup
-============================
+Apache Sling Type Cleanup
+=========================
 
-org.apache.sling.typecleanup
+services for cleaning up resources whose types don't exist.
+
