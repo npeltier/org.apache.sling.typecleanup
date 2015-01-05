@@ -42,7 +42,8 @@ public interface TypeCleanupService {
      * @param root
      * @return
      */
-    public List<String> getObsoletePaths(Resource root) throws Exception;
+    public TypeCleanupInfo buildCleanupInfo(Resource root) throws Exception;
+
     /**
      * Remove obsolete resources  (meaning resource with types not defined)
      */
@@ -51,8 +52,8 @@ public interface TypeCleanupService {
     /**
      * Remove resources passed in parameter
      * @param resolver
-     * @param paths
+     * @param infos
      */
-    public void removeResources(ResourceResolver resolver, List<String> paths) throws RepositoryException;
+    public void removeResources(ResourceResolver resolver, TypeCleanupInfo infos) throws RepositoryException;
 
 }

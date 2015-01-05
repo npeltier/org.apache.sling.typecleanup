@@ -52,6 +52,7 @@
     <dependency>
       <groupId>javax.servlet</groupId>
       <artifactId>servlet-api</artifactId>
+      <version>2.5</version>
       <scope>provided</scope>
     </dependency>
     <!-- OSGi -->
@@ -76,13 +77,13 @@
     <dependency>
       <groupId>org.apache.sling</groupId>
       <artifactId>org.apache.sling.engine</artifactId>
-      <version>2.3.2</version>
+      <version>2.2.8</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.sling</groupId>
       <artifactId>org.apache.sling.commons.osgi</artifactId>
-      <version>2.2.0</version>
+      <version>2.2.2</version>
       <scope>provided</scope>
     </dependency>
     <!-- Apache Felix -->
@@ -95,27 +96,29 @@
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
-      <version>1.7.7</version>
-      <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>
-        maven-repo.maven-repo.maven-repo.maven-repo.maven-repo.maven-repo.maven-repo.maven-repo.maven-repo.org.apache.sling
-      </groupId>
+      <groupId>org.apache.sling</groupId>
       <artifactId>org.apache.sling.api</artifactId>
-      <version>2.2.4</version>
+      <version>2.4.0</version>
     </dependency>
     <dependency>
-      <groupId>
-        maven-repo.maven-repo.maven-repo.maven-repo.maven-repo.maven-repo.maven-repo.maven-repo.maven-repo.maven-repo.maven-repo.maven-repo.maven-repo.maven-repo.maven-repo.maven-repo.org.apache.commons
-      </groupId>
+      <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
-      <version>3.1</version>
+      <version>3.0.1</version>
     </dependency>
     <dependency>
       <groupId>org.apache.sling</groupId>
       <artifactId>org.apache.sling.jcr.jcr-wrapper</artifactId>
       <version>2.0.0</version>
+    </dependency>
+
+    <!-- testing -->
+    <dependency>
+      <groupId>org.apache.sling</groupId>
+      <artifactId>org.apache.sling.testing.sling-mock</artifactId>
+      <version>1.1.1-R1648267</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 
@@ -139,14 +142,6 @@
             <Bundle-Category>sling</Bundle-Category>
             <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
             <Export-Package/>
-            <Embed-Dependency>
-              org.apache.sling.commons.osgi;inline="org/apache/sling/commons/osgi/PropertiesUtil.*"
-            </Embed-Dependency>
-            <_removeheaders>
-              Embed-Dependency,
-              Private-Package,
-              Include-Resource
-            </_removeheaders>
           </instructions>
         </configuration>
       </plugin>
@@ -154,6 +149,20 @@
         <groupId>org.apache.felix</groupId>
         <artifactId>maven-scr-plugin</artifactId>
       </plugin>
+      <!-- Apache Sling Plugin to install bundles -->
+      <plugin>
+        <groupId>org.apache.sling</groupId>
+        <artifactId>maven-sling-plugin</artifactId>
+        <version>2.1.0</version>
+        <inherited>true</inherited>
+
+        <configuration>
+          <slingUrl>http://localhost:4502</slingUrl>
+          <slingUrlSuffix>/apps/system/install</slingUrlSuffix>
+          <usePut>true</usePut>
+        </configuration>
+      </plugin>
+
     </plugins>
   </build>
 

@@ -18,10 +18,10 @@
  */
 package org.apache.sling.typecleanup.impl;
 
-import aQute.bnd.maven.support.Repo;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Modified;
 import org.apache.felix.scr.annotations.Properties;
@@ -32,25 +32,26 @@ import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.commons.osgi.PropertiesUtil;
+import org.apache.sling.typecleanup.TypeCleanupInfo;
 import org.apache.sling.typecleanup.TypeCleanupService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Dictionary;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-@Component
+@Component(policy= ConfigurationPolicy.REQUIRE, metatype = true)
 @Service
 @Properties({
-        @Property(name=TypeCleanupServiceImpl.PROP_INCLUSIONS),
-        @Property(name=TypeCleanupServiceImpl.PROP_EXCLUSIONS)
+        @Property(name=TypeCleanupServiceImpl.PROP_INCLUSIONS, description = "%" + TypeCleanupServiceImpl.PROP_INCLUSIONS, value = {"",""}),
+        @Property(name=TypeCleanupServiceImpl.PROP_EXCLUSIONS, description = "%" + TypeCleanupServiceImpl.PROP_EXCLUSIONS, value = {"",""})
 })
 public class TypeCleanupServiceImpl implements TypeCleanupService{
     Logger logger = LoggerFactory.getLogger(this.getClass());
@@ -62,24 +63,24 @@ public class TypeCleanupServiceImpl implements TypeCleanupService{
     /**
      * set of resource types patterns resource will be checked against
      */
-    List<String> checkedResourceTypes;
+    protected List<String> checkedResourceTypes;
 
     /**
      * possible exclusions
      */
-    List<String> excludedResourceTypes;
+    protected List<String> excludedResourceTypes;
 
     @Reference
     ResourceResolverFactory factory;
 
     @Activate
-    private void activate(Dictionary properties) {
+    private void activate(Map properties) {
         logger.debug("activate");
         configure(properties);
     }
 
     @Modified
-    private void modified(final Dictionary properties) {
+    private void modified(final Map properties) {
         logger.debug("modified");
         configure(properties);
     }
@@ -89,7 +90,7 @@ public class TypeCleanupServiceImpl implements TypeCleanupService{
         logger.debug("deactivate");
     }
 
-    private synchronized void configure(final Dictionary properties) {
+    private synchronized void configure(final Map properties) {
         logger.info("configuring Type cleanup");
         String[] inclusions = PropertiesUtil.toStringArray(properties.get(PROP_INCLUSIONS));
         String[] exclusions = PropertiesUtil.toStringArray(properties.get(PROP_EXCLUSIONS));
@@ -118,7 +119,7 @@ public class TypeCleanupServiceImpl implements TypeCleanupService{
      * @param resourceType
      * @return
      */
-    private boolean isTypeIncluded(String resourceType){
+    protected boolean isTypeIncluded(String resourceType){
         boolean included = false;
         if (StringUtils.isNotBlank(resourceType)) {
             for (String prefix : checkedResourceTypes) {
@@ -142,29 +143,30 @@ public class TypeCleanupServiceImpl implements TypeCleanupService{
      * traverse the resource tree recursively and list obsolete paths as follow:
      * - if resource's type belongs to the patterns to check and don't exist, add it to the list.
      * - other wise look at children and re-iterate.
-     * @param paths
+     * @param infos
      * @param checker
      * @param resource
      * @return
      */
-    private void fillObsoletePaths(final List<String> paths, ResourceResolver checker, Resource resource){
+    protected void collectObsoletePaths(final TypeCleanupInfo infos, ResourceResolver checker, Resource resource){
+        infos.traverse();
         if (isTypeIncluded(resource.getResourceType()) && !resourceTypeExists(checker, resource)){
-            paths.add(resource.getPath());
+            infos.add(resource.getPath());
         } else {
             for (Iterator<Resource> childIterator = resource.listChildren(); childIterator.hasNext(); ){
-                fillObsoletePaths(paths, checker, childIterator.next());
+                collectObsoletePaths(infos, checker, childIterator.next());
             }
         }
     }
 
     @Override
-    public List<String> getObsoletePaths(Resource root) {
-        List<String> paths = new ArrayList<String>();
+    public TypeCleanupInfo buildCleanupInfo(Resource root) {
+        TypeCleanupInfo infos = new TypeCleanupInfo();
         ResourceResolver checker = null;
         try {
             if (isConfigured()) {
                 checker = factory.getAdministrativeResourceResolver(null);
-                fillObsoletePaths(paths, checker, root);
+                collectObsoletePaths(infos, checker, root);
             }
         } catch (Exception e){
             logger.error("Unable to properly retrieve the paths", e);
@@ -173,21 +175,21 @@ public class TypeCleanupServiceImpl implements TypeCleanupService{
                 checker.close();
             }
         }
-        return paths;
+        return infos;
     }
 
     @Override
     public void removeObsoleteResources(Resource root) throws RepositoryException {
-        List<String> paths = getObsoletePaths(root);
-        removeResources(root.getResourceResolver(), paths);
+        TypeCleanupInfo infos = buildCleanupInfo(root);
+        removeResources(root.getResourceResolver(), infos);
     }
 
     @Override
-    public void removeResources(ResourceResolver resolver, List<String> paths) throws RepositoryException {
-        logger.info("Starting to remove {} obsolete resources", paths.size());
+    public void removeResources(ResourceResolver resolver, TypeCleanupInfo infos) throws RepositoryException {
+        logger.info("Starting to remove {} obsolete resources", infos.getPaths().size());
         Session session = resolver.adaptTo(Session.class);
-        for (int pathIndex = 0; pathIndex < paths.size(); pathIndex ++){
-            String path = paths.get(pathIndex);
+        for (int pathIndex = 0; pathIndex < infos.getPaths().size(); pathIndex ++){
+            String path = infos.getPaths().get(pathIndex);
             Resource resource = resolver.getResource(path);
             Node node = resource != null ? resource.adaptTo(Node.class) : null;
             if (node != null){

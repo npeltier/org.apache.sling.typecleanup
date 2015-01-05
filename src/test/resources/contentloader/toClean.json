@@ -1,0 +1,33 @@
+{
+  "jcr:primaryType": "nt:unstructured",
+  "toClean": {
+    "jcr:primaryType": "nt:unstructured",
+    "notexisting": {
+      "jcr:primaryType": "nt:unstructured",
+      "sling:resourceType": "/apps/blah/foo",
+      "notexistingChild": {
+        "jcr:primaryType": "nt:unstructured",
+        "sling:resourceType": "/apps/blah/foo"
+      }
+    }
+  },
+  "toKeep": {
+    "jcr:primaryType": "nt:unstructured",
+    "notexistingButNotConfigured": {
+      "jcr:primaryType": "nt:unstructured",
+      "sling:resourceType": "/apps/foo"
+    },
+    "existsAndConfigured": {
+      "jcr:primaryType": "nt:unstructured",
+      "sling:resourceType": "/apps/blah/exists"
+    },
+    "existsAndNotConfigured": {
+      "jcr:primaryType": "nt:unstructured",
+      "sling:resourceType": "/apps/exists"
+    },
+    "notExistingButExcluded": {
+      "jcr:primaryType": "nt:unstructured",
+      "sling:resourceType": "/apps/blah/ignored"
+    }
+  }
+}

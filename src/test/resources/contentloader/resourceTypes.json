@@ -1,0 +1,12 @@
+{
+  "jcr:primaryType": "nt:unstructured",
+  "blah":{
+    "jcr:primaryType": "nt:unstructured",
+    "exists": {
+      "jcr:primaryType": "nt:unstructured"
+    }
+  },
+  "exists": {
+    "jcr:primaryType": "nt:unstructured"
+  }
+}
