@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +48,7 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-@Component(policy= ConfigurationPolicy.REQUIRE, metatype = true)
+@Component(policy= ConfigurationPolicy.REQUIRE, metatype = true, immediate = true)
 @Service
 @Properties({
         @Property(name=TypeCleanupServiceImpl.PROP_INCLUSIONS, description = "%" + TypeCleanupServiceImpl.PROP_INCLUSIONS, value = {"",""}),
@@ -92,10 +93,33 @@ public class TypeCleanupServiceImpl implements TypeCleanupService{
 
     private synchronized void configure(final Map properties) {
         logger.info("configuring Type cleanup");
+        setupLists(properties);
+    }
+
+    /**
+     * Sets up inclusion & exclusion prefixes lists, without empty prefixes
+     * @param properties
+     */
+    protected void setupLists(final Map properties) {
         String[] inclusions = PropertiesUtil.toStringArray(properties.get(PROP_INCLUSIONS));
         String[] exclusions = PropertiesUtil.toStringArray(properties.get(PROP_EXCLUSIONS));
-        checkedResourceTypes = inclusions != null ? Arrays.asList(inclusions) : null;
-        excludedResourceTypes = exclusions != null ? Arrays.asList(exclusions) : null;
+        if (inclusions != null){
+            checkedResourceTypes = new ArrayList<String>();
+            for (String inclusion : inclusions){
+                if (StringUtils.isNotBlank(inclusion)){
+                    checkedResourceTypes.add(inclusion);
+                }
+            }
+        }
+
+        if (exclusions != null){
+            excludedResourceTypes = new ArrayList<String>();
+            for (String exclusion : exclusions){
+                if (StringUtils.isNotBlank(exclusion)){
+                    excludedResourceTypes.add(exclusion);
+                }
+            }
+        }
     }
 
     @Override
@@ -111,7 +135,7 @@ public class TypeCleanupServiceImpl implements TypeCleanupService{
      * @return
      */
     private boolean resourceTypeExists(ResourceResolver checkResolver, Resource resource){
-        return (checkResolver.resolve(resource.getResourceType()) != null);
+        return (checkResolver.getResource(resource.getResourceType()) != null);
     }
 
     /**

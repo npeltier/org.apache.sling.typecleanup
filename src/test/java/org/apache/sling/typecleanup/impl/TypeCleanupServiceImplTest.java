@@ -8,9 +8,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * unit testing TypeCleanup Service
@@ -27,6 +27,15 @@ public class TypeCleanupServiceImplTest {
         service = new TypeCleanupServiceImpl();
         service.checkedResourceTypes = Arrays.asList(new String[] {"/apps/blah","/libs"});
         service.excludedResourceTypes = Arrays.asList(new String[] {"/apps/blah/ignored", "/libs/ignored"});
+    }
+
+    @Test
+    public void testCleanupLists() {
+        Map<String, Object> properties = new HashMap<String, Object>();
+        properties.put(TypeCleanupServiceImpl.PROP_INCLUSIONS, new String[] {"","/apps/blah","", "/libs",""});
+        properties.put(TypeCleanupServiceImpl.PROP_EXCLUSIONS, new String[] {"","/apps/blah/ignored", "", "/libs/ignored",""});
+        Assert.assertEquals(2, service.checkedResourceTypes.size());
+        Assert.assertEquals(2, service.excludedResourceTypes.size());
     }
 
     @Test
@@ -48,11 +57,11 @@ public class TypeCleanupServiceImplTest {
         contentLoader.json("/contentloader/resourceTypes.json", "/apps");
         contentLoader.json("/contentloader/toClean.json", "/content");
 
-        List<String> paths = new ArrayList<String>();
-        service.collectObsoletePaths(new TypeCleanupInfo(), resolver, resolver.getResource("/content"));
-        Assert.assertEquals("There should be one cleaned up path from the sample content", 1, paths.size());
-        if (paths.size() > 0){
-            Assert.assertEquals("The path should be the parent, i.e. /content/toClean/notexisting", "/content/toClean/notexisting", paths.get(0));
+        TypeCleanupInfo infos = new TypeCleanupInfo();
+        service.collectObsoletePaths(infos, resolver, resolver.getResource("/content"));
+        Assert.assertEquals("There should be one cleaned up path from the sample content", 1, infos.getPaths().size());
+        if (infos.getPaths().size() > 0){
+            Assert.assertEquals("The path should be the parent, i.e. /content/toClean/notexisting", "/content/toClean/notexisting", infos.getPaths().get(0));
         }
     }
 }
