@@ -33,8 +33,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.List;
+import java.io.PrintWriter;
 
 @SlingServlet(
     label = "Apache Sling Type Cleanup list",
@@ -55,6 +56,12 @@ public class TypeCleanupServlet extends SlingAllMethodsServlet {
 
     private static final String PARAM_PATH = "path";
 
+    private static final String PARAM_PATHS = "paths";
+
+    private static final String PARAM_ACTION = "action";
+
+    private static final String ACTION_CLEANUP = "cleanup";
+
     @Reference
     TypeCleanupService typeCleanupService;
 
@@ -70,10 +77,8 @@ public class TypeCleanupServlet extends SlingAllMethodsServlet {
                 } else {
                     Resource resource = request.getResourceResolver().getResource(path);
                     TypeCleanupInfo infos  = typeCleanupService.buildCleanupInfo(resource);
-                    response.getWriter().printf("%d resources traversed, %d obsolete resources\n", infos.getNbResourceParsed(), infos.getPaths().size());
-                    for (String obsoletePath : infos.getPaths()){
-                        response.getWriter().printf("%s\n", obsoletePath);
-                    }
+                    printTypeCleanupInfo(response, infos);
+                    response.setStatus(HttpServletResponse.SC_OK);
                     response.getWriter().printf("done.");
                 }
             }
@@ -83,8 +88,39 @@ public class TypeCleanupServlet extends SlingAllMethodsServlet {
         }
     }
 
-    @Override
-    protected void doPost(SlingHttpServletRequest request, SlingHttpServletResponse response) throws ServletException, IOException {
-        super.doPost(request, response);
+    protected void printTypeCleanupInfo(SlingHttpServletResponse response, TypeCleanupInfo infos) throws IOException {
+        PrintWriter w = response.getWriter();
+        w.printf("%d resources traversed, %d obsolete resources\n", infos.getNbResourceParsed(), infos.getPaths().size());
+        for (String obsoletePath : infos.getPaths()){
+            w.printf("%s,\n", obsoletePath);
+        }
+        if (infos.getIgnoredPaths().size() > 0){
+            w.printf("%d configured paths were ignored:\n");
+            for (String ignoredPath : infos.getIgnoredPaths()){
+                w.printf("%s,\n", ignoredPath);
+            }
+        }
     }
+
+    @Override
+    protected void doPost(SlingHttpServletRequest request, SlingHttpServletResponse response) throws ServletException {
+        try {
+            String action = request.getParameter(PARAM_ACTION);
+            if (StringUtils.isNotBlank(action) && action.equals(ACTION_CLEANUP)) {
+                String pathsString = request.getParameter(PARAM_PATHS);
+                String[] paths = pathsString.split(",");
+                TypeCleanupInfo infos = typeCleanupService.buildCleanupInfo(paths);
+                typeCleanupService.cleanup(request.getResourceResolver(), infos);
+                printTypeCleanupInfo(response, infos);
+                response.setStatus(HttpServletResponse.SC_OK);
+            } else {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                response.getWriter().print("invalid action parameter");
+            }
+            response.flushBuffer();
+        } catch (Exception e){
+            throw new ServletException(e);
+        }
+    }
+
 }

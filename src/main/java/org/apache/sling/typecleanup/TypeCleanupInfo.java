@@ -18,8 +18,6 @@
  */
 package org.apache.sling.typecleanup;
 
-import org.apache.sling.api.resource.Resource;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,10 +26,21 @@ import java.util.List;
  */
 public class TypeCleanupInfo {
     List<String> paths = new ArrayList<String>();
+    /**
+     * this is meant to store parameterized path by users (for removal) that have been
+     * ignored either because they are in conflict with configuration, or because they
+     * don't exist
+     */
+    List<String> ignoredPaths = new ArrayList<String>();
+
     long nbResourceParsed = 0;
 
     public void add(String path){
         paths.add(path);
+    }
+
+    public void addIgnoredPath(String path) {
+        ignoredPaths.add(path);
     }
 
     public void traverse() {
@@ -44,5 +53,9 @@ public class TypeCleanupInfo {
 
     public long getNbResourceParsed() {
         return nbResourceParsed;
+    }
+
+    public List<String> getIgnoredPaths() {
+        return ignoredPaths;
     }
 }

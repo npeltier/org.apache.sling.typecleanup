@@ -18,6 +18,7 @@ import java.util.Map;
 public class TypeCleanupServiceImplTest {
 
     TypeCleanupServiceImpl service;
+    ResourceResolver resolver;
 
     @Rule
     public final SlingContext context = new SlingContext();
@@ -27,13 +28,17 @@ public class TypeCleanupServiceImplTest {
         service = new TypeCleanupServiceImpl();
         service.checkedResourceTypes = Arrays.asList(new String[] {"/apps/blah","/libs"});
         service.excludedResourceTypes = Arrays.asList(new String[] {"/apps/blah/ignored", "/libs/ignored"});
+        resolver = context.resourceResolver();
+        ContentLoader contentLoader = new ContentLoader(resolver);
+        contentLoader.json("/contentloader/resourceTypes.json", "/apps");
+        contentLoader.json("/contentloader/toClean.json", "/content");
     }
 
     @Test
     public void testCleanupLists() {
         Map<String, Object> properties = new HashMap<String, Object>();
         properties.put(TypeCleanupServiceImpl.PROP_INCLUSIONS, new String[] {"","/apps/blah","", "/libs",""});
-        properties.put(TypeCleanupServiceImpl.PROP_EXCLUSIONS, new String[] {"","/apps/blah/ignored", "", "/libs/ignored",""});
+        properties.put(TypeCleanupServiceImpl.PROP_EXCLUSIONS, new String[]{"", "/apps/blah/ignored", "", "/libs/ignored", ""});
         Assert.assertEquals(2, service.checkedResourceTypes.size());
         Assert.assertEquals(2, service.excludedResourceTypes.size());
     }
@@ -51,11 +56,17 @@ public class TypeCleanupServiceImplTest {
     }
 
     @Test
+    public void testIsObsolete() {
+        Assert.assertTrue("resource is obsolete", service.isObsolete(resolver.getResource("/content/toClean/notexisting")));
+        Assert.assertFalse("resource is not obsolete", service.isObsolete(resolver.getResource("/content/toKeep/notexistingButNotConfigured")));
+        Assert.assertFalse("resource is not obsolete", service.isObsolete(resolver.getResource("/content/toKeep/existsAndConfigured")));
+        Assert.assertFalse("resource is not obsolete", service.isObsolete(resolver.getResource("/content/toKeep/existsAndNotConfigured")));
+        Assert.assertFalse("resource is not obsolete", service.isObsolete(resolver.getResource("/content/toKeep/notExistingButExcluded")));
+        Assert.assertFalse("resource is not obsolete", service.isObsolete(resolver.getResource("/content")));
+    }
+
+    @Test
     public void testCollectObsoletePaths() {
-        ResourceResolver resolver = context.resourceResolver();
-        ContentLoader contentLoader = new ContentLoader(resolver);
-        contentLoader.json("/contentloader/resourceTypes.json", "/apps");
-        contentLoader.json("/contentloader/toClean.json", "/content");
 
         TypeCleanupInfo infos = new TypeCleanupInfo();
         service.collectObsoletePaths(infos, resolver, resolver.getResource("/content"));

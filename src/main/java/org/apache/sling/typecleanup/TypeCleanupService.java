@@ -22,12 +22,12 @@ import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 
 import javax.jcr.RepositoryException;
-import java.util.List;
 
 /**
  * Service offering to cleanup obsolete resources.
  * A resource is declared obsolete if:
- * - the current
+ * - the resource type is within the configured inclusions, and not in the configured exclusions
+ * - the resource type doesn't exist
  */
 public interface TypeCleanupService {
     /**
@@ -38,22 +38,23 @@ public interface TypeCleanupService {
     public boolean isConfigured();
 
     /**
-     * Get obsolete resources (meaning resource with types not defined)
+     * Get obsolete resources in a given tree
      * @param root
      * @return
      */
     public TypeCleanupInfo buildCleanupInfo(Resource root) throws Exception;
 
     /**
-     * Remove obsolete resources  (meaning resource with types not defined)
+     * Get obsolete resources from a given array
+     * @param paths
+     * @return
      */
-    public void removeObsoleteResources(Resource root) throws RepositoryException;
+    public TypeCleanupInfo buildCleanupInfo(String [] paths);
 
     /**
      * Remove resources passed in parameter
      * @param resolver
-     * @param infos
+     * @param infos wrapper containing resources to cleanup
      */
-    public void removeResources(ResourceResolver resolver, TypeCleanupInfo infos) throws RepositoryException;
-
+    public void cleanup(ResourceResolver resolver,TypeCleanupInfo infos) throws RepositoryException;
 }
